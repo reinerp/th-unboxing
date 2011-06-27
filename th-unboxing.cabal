@@ -1,0 +1,37 @@
+Name:                th-unboxing
+Version:             0.1
+Synopsis:            Template Haskell assistance for "polymorphic" unpacked containers
+Description:         See Data.Unboxed.Derive for documentation.
+License:             BSD3
+License-file:        LICENSE
+Author:              Reiner Pope
+Maintainer:          reiner.pope@gmail.com
+-- Copyright:           
+Category:            Data
+Build-type:          Simple
+Cabal-version:       >=1.9.2
+
+Flag Vacuum
+    Description:  In the test, show a data structure diagram using vacuum-cairo
+    Default:    False
+
+Library
+  Exposed-modules:     
+     Data.Unboxed
+     Data.Unboxed.Derive
+
+  Build-depends: base, th-lift, template-haskell
+  
+  Other-modules:
+    Data.Unboxed.LiftCon
+
+Test-Suite test-compiles
+    type: exitcode-stdio-1.0
+    main-is: Main.hs
+    build-depends: base, th-unboxing
+    hs-source-dirs: examples
+
+-- Waiting on http://hackage.haskell.org/trac/hackage/ticket/811
+--    if flag(Vacuum)
+--        build-depends: vacuum-cairo
+--        cpp-options: -DVACUUM
