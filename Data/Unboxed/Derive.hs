@@ -105,7 +105,7 @@ declareType' deriverNm d@(DataD cxt nm tyvars cons derivs) = do
   let inst = DataInstD [] ''Polymorphic [polyTy] cons []
       
   -- define the deriver
-  ctorsExp <- lift (nm, tyvars, map simpleCon cons)
+  ctorsExp <- lift (SimpleData nm tyvars (map simpleCon cons))
   let deriver = FunD (mkName deriverNm) [Clause [] (NormalB (AppE (VarE 'declareTypeInstance) ctorsExp)) []]
 {-  let dInst = InstanceD [] (AppT (ConT ''Derivable) polyTy) [
         FunD 'getDataD [Clause [WildP] (NormalB ctorsExp) []]
@@ -131,28 +131,28 @@ bndrName (KindedTV nm _) = nm
 inline :: String -> Dec
 inline name = PragmaD (InlineP (mkName name) (InlineSpec True False Nothing))
 
-declareTypeInstance :: (Name, [TyVarBndr], [SimpleCon]) -> Q Type -> Q [Dec]
+declareTypeInstance :: SimpleData -> Q Type -> Q [Dec]
 declareTypeInstance a qt = do
   t <- qt
   declareTypeInstance' a t
 
 -- creates the 'data instance' and the 'instance Unpacked'
-declareTypeInstance' :: (Name, [TyVarBndr], [SimpleCon]) -> Type -> Q [Dec]
-declareTypeInstance' (_,map bndrName -> tyvars,cons) t@(unTyApp -> Just (nm,tys)) = do
+declareTypeInstance' :: SimpleData -> Type -> Q [Dec]
+declareTypeInstance' (SimpleData _ (map bndrName -> tyvars) cons) t@(unTyApp -> Just (nm,tys)) = do
   thAssert t "Applied to wrong number of type variables" $ length tys == length tyvars
 
   let tyLookup = zip tyvars tys
   -- rename the constructors, substitute the ty vars
-  cons' <- forM cons $ \(SimpleCon bndrs cxt (toName -> nm) stys) -> do
+  cons' <- forM cons $ \(SimpleCon bndrs cxt nm stys) -> do
     -- nm' <- newName (nameBase nm) --
-    --let nm' = mkName (nameBase nm ++ "__unpacked")
-    let nm' = nameBase nm ++ "__unpacked" -- urgh
+    let nm' = mkName (nameBase nm ++ "__unpacked")
+    --let nm' = nameBase nm ++ "__unpacked" -- urgh
     return $ SimpleCon bndrs cxt nm' (map (second . substVar $ flip lookup tyLookup) stys)
   -- construct the datatype instance
   let dataInstD = DataInstD [] nm tys (map unSimpleCon cons') []
 
   -- now construct the 'instance Unpacked'
-  let mkClause (SimpleCon _ _ (toName -> nm1) (length -> l)) (SimpleCon _ _ (toName -> nm2) _) = do
+  let mkClause (SimpleCon _ _ nm1 (length -> l)) (SimpleCon _ _ nm2 _) = do
         vars <- mapM newName (replicate l "v")
         return $ Clause [ConP nm1 (map VarP vars)] (NormalB (mkExpApp (ConE nm2) (map VarE vars))) []
       mkClauses cons1 cons2 = sequence (zipWith mkClause cons1 cons2)
