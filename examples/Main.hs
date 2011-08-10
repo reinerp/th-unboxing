@@ -8,13 +8,13 @@ import UnboxedPair
 
 $(definePair [t| Pair Int Int |])
 -- unfortunately doesn't unpack, due to <http://hackage.haskell.org/trac/ghc/ticket/3990>
-$(definePair [t| Pair (Pair Int Int) Int |])
+-- $(definePair [t| Pair (Pair Int Int) Int |])
 
 simplePair :: Pair Int Int
 simplePair = pair 0 1
 
-nestedPair :: Pair (Pair Int Int) Int
-nestedPair = pair (pair 0 1) 2
+--nestedPair :: Pair (Pair Int Int) Int
+--nestedPair = pair (pair 0 1) 2
 
 #ifdef VACUUM
 main = 
